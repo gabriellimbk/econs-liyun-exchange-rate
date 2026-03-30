@@ -1,0 +1,5 @@
+{
+  "name": "Exchange Rate Regimes Explorer",
+  "description": "An interactive educational tool to understand free floating, managed float, and fixed exchange rate regimes with real-world examples and historical crises.",
+  "requestFramePermissions": []
+}
