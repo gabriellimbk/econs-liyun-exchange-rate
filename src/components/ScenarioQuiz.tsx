@@ -14,6 +14,7 @@ export type Scenario = {
   id: string;
   text: string;
   correctFactorId: string;
+  direction?: 'increased' | 'decreased';
 };
 
 export default function ScenarioQuiz({
@@ -22,7 +23,7 @@ export default function ScenarioQuiz({
   resetKey
 }: {
   scenarios: Scenario[];
-  onCorrect: (type: 'demand' | 'supply') => void;
+  onCorrect: (type: 'demand' | 'supply', direction: 'increased' | 'decreased') => void;
   resetKey: number;
 }) {
   const [shuffledScenarios, setShuffledScenarios] = useState<Scenario[]>([]);
@@ -47,7 +48,7 @@ export default function ScenarioQuiz({
       setStatus(prev => ({ ...prev, [scenarioId]: 'correct' }));
       const factor = THEORETICAL_FACTORS.find(f => f.id === factorId);
       if (factor) {
-        onCorrect(factor.type as 'demand' | 'supply');
+        onCorrect(factor.type as 'demand' | 'supply', scenario.direction || 'increased');
       }
     } else {
       setStatus(prev => ({ ...prev, [scenarioId]: 'incorrect' }));
@@ -62,6 +63,7 @@ export default function ScenarioQuiz({
       {shuffledScenarios.map(scenario => {
         const isCorrect = status[scenario.id] === 'correct';
         const isIncorrect = status[scenario.id] === 'incorrect';
+        const direction = scenario.direction || 'increased';
 
         return (
           <div key={scenario.id} className={`p-4 rounded-xl border transition-colors ${isCorrect ? 'bg-emerald-50 border-emerald-200' : isIncorrect ? 'bg-rose-50 border-rose-200' : 'bg-slate-50 border-slate-200'}`}>
@@ -82,7 +84,7 @@ export default function ScenarioQuiz({
 
               {isCorrect && (
                 <div className="flex items-center gap-1.5 text-emerald-600 text-sm font-medium mt-1">
-                  <CheckCircle2 className="w-4 h-4" /> Correct! The {THEORETICAL_FACTORS.find(f => f.id === scenario.correctFactorId)?.type} curve has shifted.
+                  <CheckCircle2 className="w-4 h-4" /> Correct! The {THEORETICAL_FACTORS.find(f => f.id === scenario.correctFactorId)?.type} curve has {direction}.
                 </div>
               )}
               {isIncorrect && (

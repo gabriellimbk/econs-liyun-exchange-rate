@@ -1,27 +1,29 @@
-# Exchange Rate Regimes Explorer
+# Exchange Rate App
 
-This repository contains the Exchange Rate Regimes Explorer as a standalone Vite app.
+This app was generated from Google AI Studio and has been cleaned up so it can be tested locally as a normal Vite app.
 
-## Run locally
+## Local testing
 
-Prerequisites:
-- Node.js
+Prerequisite: Node.js 20+.
 
-Steps:
-1. Open a terminal in the repository root
-2. Install dependencies with `npm install`
-3. Create `.env.local` if needed and set `GEMINI_API_KEY=your_key`
-4. Start the dev server with `npm run dev`
+1. Install dependencies:
+   `npm install`
+2. Start the development server:
+   `npm run dev`
+3. Open:
+   `http://127.0.0.1:3000`
 
-The app runs on `http://localhost:3000`.
+## Production preview
 
-## GitHub Pages
+1. Build the app:
+   `npm run build`
+2. Preview the built files locally:
+   `npm run preview`
+3. Open:
+   `http://127.0.0.1:4173`
 
-`npm run build` outputs the production site to `docs/` with the correct base path for:
+## Notes
 
-`https://gabriellimbk.github.io/econs-liyun-exchange-rate/`
-
-In GitHub Pages settings, use:
-- Source: `Deploy from a branch`
-- Branch: `main`
-- Folder: `/docs`
+- No environment variables are required for the current version of this app.
+- `dist/` is the folder you would deploy later if you choose static hosting.
+- `.gitignore` already excludes `node_modules/`, `dist/`, logs, and local env files.

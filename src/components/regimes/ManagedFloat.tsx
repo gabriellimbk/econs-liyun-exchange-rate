@@ -17,11 +17,12 @@ export default function ManagedFloat() {
   const [supplyShift, setSupplyShift] = useState(0);
   const [resetKey, setResetKey] = useState(0);
 
-  const handleCorrect = (type: 'demand' | 'supply') => {
+  const handleCorrect = (type: 'demand' | 'supply', direction: 'increased' | 'decreased' = 'increased') => {
+    const shiftAmount = direction === 'increased' ? 40 : -40;
     if (type === 'demand') {
-      setDemandShift(d => Math.min(d + 40, 120));
+      setDemandShift(d => Math.min(Math.max(d + shiftAmount, -120), 120));
     } else {
-      setSupplyShift(s => Math.min(s + 40, 120));
+      setSupplyShift(s => Math.min(Math.max(s + shiftAmount, -120), 120));
     }
   };
 
@@ -32,28 +33,21 @@ export default function ManagedFloat() {
   const freeY = 150 + (supplyShift - demandShift) / 2;
   
   let cbSupplyShift = 0;
+  let cbDemandShift = 0;
   let interventionMsg = null;
 
   if (freeY < upperBound) {
     // ER is too strong (y is too low). CB needs to sell SGD (increase supply).
-    // To keep eqY = upperBound (120):
-    // 120 = 150 + (supplyShift + cbSupplyShift - demandShift) / 2
-    // -60 = supplyShift + cbSupplyShift - demandShift
-    // cbSupplyShift = demandShift - supplyShift - 60
     cbSupplyShift = demandShift - supplyShift - 60;
     interventionMsg = "MAS sells SGD (increases supply) to prevent excessive appreciation.";
   } else if (freeY > lowerBound) {
-    // ER is too weak (y is too high). CB needs to buy SGD (decrease supply).
-    // To keep eqY = lowerBound (180):
-    // 180 = 150 + (supplyShift + cbSupplyShift - demandShift) / 2
-    // 60 = supplyShift + cbSupplyShift - demandShift
-    // cbSupplyShift = demandShift - supplyShift + 60
-    cbSupplyShift = demandShift - supplyShift + 60;
-    interventionMsg = "MAS buys SGD (decreases supply) to prevent excessive depreciation.";
+    // ER is too weak (y is too high). CB needs to buy SGD (increase demand).
+    cbDemandShift = supplyShift - demandShift - 60;
+    interventionMsg = "MAS buys SGD (increases demand) to prevent excessive depreciation.";
   }
 
-  const eqX = 150 + (demandShift + supplyShift + cbSupplyShift) / 2;
-  const eqY = 150 + (supplyShift + cbSupplyShift - demandShift) / 2;
+  const eqX = 150 + (demandShift + cbDemandShift + supplyShift + cbSupplyShift) / 2;
+  const eqY = 150 + (supplyShift + cbSupplyShift - (demandShift + cbDemandShift)) / 2;
 
   const reset = () => {
     setDemandShift(0);
@@ -75,9 +69,9 @@ export default function ManagedFloat() {
         </p>
       </header>
 
-      <div className="grid items-start lg:grid-cols-2 gap-8">
+      <div className="grid lg:grid-cols-2 gap-8">
         {/* Interactive Graph */}
-        <div className="bg-white p-6 rounded-3xl shadow-sm border border-slate-200 lg:sticky lg:top-8">
+        <div className="bg-white p-6 rounded-3xl shadow-sm border border-slate-200 lg:sticky lg:top-8 self-start">
           <h3 className="text-xl font-bold text-slate-900 mb-6 text-center">Forex Market for Singapore Dollars (SGD)</h3>
           
           <div className="relative w-full aspect-square max-w-md mx-auto bg-slate-50 rounded-xl border border-slate-100 overflow-hidden">
@@ -107,13 +101,14 @@ export default function ManagedFloat() {
               <motion.line 
                 x1={50 + demandShift} y1={50} 
                 x2={250 + demandShift} y2={250} 
-                stroke="#3b82f6" strokeWidth="3" 
+                stroke="#3b82f6" strokeWidth={cbDemandShift !== 0 ? 2 : 3} 
+                strokeDasharray={cbDemandShift !== 0 ? "4 4" : "none"}
                 animate={{ x1: 50 + demandShift, x2: 250 + demandShift }}
                 transition={{ type: "spring", stiffness: 100 }}
               />
               <motion.text 
                 x={260 + demandShift} y={260} 
-                className="text-sm fill-blue-600 font-bold"
+                className={`text-sm font-bold ${cbDemandShift !== 0 ? 'fill-blue-400' : 'fill-blue-600'}`}
                 animate={{ x: 260 + demandShift }}
               >{demandShift !== 0 ? 'D1' : 'D'}</motion.text>
 
@@ -149,6 +144,26 @@ export default function ManagedFloat() {
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1, x: 260 + supplyShift + cbSupplyShift }}
                   >S2 (CB)</motion.text>
+                </>
+              )}
+
+              {/* CB Intervention Demand (Only visible if intervening) */}
+              {cbDemandShift !== 0 && (
+                <>
+                  <motion.line 
+                    x1={50 + demandShift + cbDemandShift} y1={50} 
+                    x2={250 + demandShift + cbDemandShift} y2={250} 
+                    stroke="#10b981" strokeWidth="3" strokeDasharray="6 4"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1, x1: 50 + demandShift + cbDemandShift, x2: 250 + demandShift + cbDemandShift }}
+                    transition={{ type: "spring", stiffness: 100 }}
+                  />
+                  <motion.text 
+                    x={260 + demandShift + cbDemandShift} y={260} 
+                    className="text-sm fill-emerald-600 font-bold"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1, x: 260 + demandShift + cbDemandShift }}
+                  >D2 (CB)</motion.text>
                 </>
               )}
 

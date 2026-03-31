@@ -17,11 +17,12 @@ export default function FreeFloating() {
   const [supplyShift, setSupplyShift] = useState(0);
   const [resetKey, setResetKey] = useState(0);
 
-  const handleCorrect = (type: 'demand' | 'supply') => {
+  const handleCorrect = (type: 'demand' | 'supply', direction: 'increased' | 'decreased' = 'increased') => {
+    const shiftAmount = direction === 'increased' ? 40 : -40;
     if (type === 'demand') {
-      setDemandShift(d => Math.min(d + 40, 120));
+      setDemandShift(d => Math.min(Math.max(d + shiftAmount, -120), 120));
     } else {
-      setSupplyShift(s => Math.min(s + 40, 120));
+      setSupplyShift(s => Math.min(Math.max(s + shiftAmount, -120), 120));
     }
   };
 
@@ -49,9 +50,9 @@ export default function FreeFloating() {
         </p>
       </header>
 
-      <div className="grid items-start lg:grid-cols-2 gap-8">
+      <div className="grid lg:grid-cols-2 gap-8">
         {/* Interactive Graph */}
-        <div className="bg-white p-6 rounded-3xl shadow-sm border border-slate-200 lg:sticky lg:top-8">
+        <div className="bg-white p-6 rounded-3xl shadow-sm border border-slate-200 lg:sticky lg:top-8 self-start">
           <h3 className="text-xl font-bold text-slate-900 mb-6 text-center">Forex Market for US Dollars (USD)</h3>
           
           <div className="relative w-full aspect-square max-w-md mx-auto bg-slate-50 rounded-xl border border-slate-100 overflow-hidden">
@@ -158,7 +159,7 @@ export default function FreeFloating() {
                 <h4 className="font-semibold text-blue-800">Pros</h4>
                 <ul className="list-disc list-inside text-sm text-blue-700 space-y-1 mt-1">
                   <li>Automatic adjustment to economic shocks.</li>
-                  <li>Independent monetary policy (can set interest rates freely).</li>
+                  <li>Independent monetary policy (can set interest rates freely, assuming free capital flow).</li>
                   <li>No need to hold massive foreign reserves.</li>
                 </ul>
               </div>

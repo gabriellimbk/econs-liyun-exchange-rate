@@ -17,28 +17,33 @@ export default function FixedPeg() {
   const [supplyShift, setSupplyShift] = useState(0);
   const [resetKey, setResetKey] = useState(0);
 
-  const handleCorrect = (type: 'demand' | 'supply') => {
+  const handleCorrect = (type: 'demand' | 'supply', direction: 'increased' | 'decreased' = 'increased') => {
+    const shiftAmount = direction === 'increased' ? 40 : -40;
     if (type === 'demand') {
-      setDemandShift(d => Math.min(d + 40, 160));
+      setDemandShift(d => Math.min(Math.max(d + shiftAmount, -160), 160));
     } else {
-      setSupplyShift(s => Math.min(s + 40, 160));
+      setSupplyShift(s => Math.min(Math.max(s + shiftAmount, -160), 160));
     }
   };
 
   const pegY = 150;
 
-  // Calculate required intervention to maintain the peg
-  // To keep eqY = pegY (150):
-  // 150 = 150 + (supplyShift + cbSupplyShift - demandShift) / 2
-  // 0 = supplyShift + cbSupplyShift - demandShift
-  // cbSupplyShift = demandShift - supplyShift
-  const cbSupplyShiftNeeded = demandShift - supplyShift;
+  let cbSupplyShiftNeeded = 0;
+  let cbDemandShiftNeeded = 0;
+
+  if (demandShift > supplyShift) {
+    // ER too strong. CB sells HKD (increases supply).
+    cbSupplyShiftNeeded = demandShift - supplyShift;
+  } else if (supplyShift > demandShift) {
+    // ER too weak. CB buys HKD (increases demand).
+    cbDemandShiftNeeded = supplyShift - demandShift;
+  }
   
   // Derive reserves from the cumulative intervention needed
   // Base reserves = 400. Each unit of shift = 2.5 units of reserves.
-  // Positive cbSupplyShiftNeeded means CB sells HKD (buys USD) -> Reserves increase
-  // Negative cbSupplyShiftNeeded means CB buys HKD (sells USD) -> Reserves decrease
-  let reserves = 400 + cbSupplyShiftNeeded * 2.5;
+  // CB sells HKD (buys USD) -> Reserves increase
+  // CB buys HKD (sells USD) -> Reserves decrease
+  let reserves = 400 + (cbSupplyShiftNeeded - cbDemandShiftNeeded) * 2.5;
   let pegBroken = false;
 
   if (reserves <= 0) {
@@ -49,9 +54,10 @@ export default function FixedPeg() {
   }
 
   const cbSupplyShift = pegBroken ? 0 : cbSupplyShiftNeeded;
+  const cbDemandShift = pegBroken ? 0 : cbDemandShiftNeeded;
   
-  const eqX = 150 + (demandShift + supplyShift + cbSupplyShift) / 2;
-  const eqY = 150 + (supplyShift + cbSupplyShift - demandShift) / 2;
+  const eqX = 150 + (demandShift + cbDemandShift + supplyShift + cbSupplyShift) / 2;
+  const eqY = 150 + (supplyShift + cbSupplyShift - (demandShift + cbDemandShift)) / 2;
 
   const reset = () => {
     setDemandShift(0);
@@ -73,9 +79,9 @@ export default function FixedPeg() {
         </p>
       </header>
 
-      <div className="grid items-start lg:grid-cols-2 gap-8">
+      <div className="grid lg:grid-cols-2 gap-8">
         {/* Interactive Graph & Reserves */}
-        <div className="space-y-6 lg:sticky lg:top-8">
+        <div className="space-y-6 lg:sticky lg:top-8 self-start">
           <div className="bg-white p-6 rounded-3xl shadow-sm border border-slate-200 relative overflow-hidden">
             <h3 className="text-xl font-bold text-slate-900 mb-6 text-center">Forex Market for Hong Kong Dollars (HKD)</h3>
             
@@ -99,17 +105,18 @@ export default function FixedPeg() {
                 <line x1="50" y1="250" x2="250" y2="50" stroke="#cbd5e1" strokeWidth="2" strokeDasharray="4 4" />
                 <text x="255" y="45" className="text-xs fill-slate-400 font-bold">S</text>
 
-                {/* Active Demand */}
+                {/* Active Demand (Market) */}
                 <motion.line 
                   x1={50 + demandShift} y1={50} 
                   x2={250 + demandShift} y2={250} 
-                  stroke="#3b82f6" strokeWidth="3" 
+                  stroke="#3b82f6" strokeWidth={cbDemandShift !== 0 ? 2 : 3} 
+                  strokeDasharray={cbDemandShift !== 0 ? "4 4" : "none"}
                   animate={{ x1: 50 + demandShift, x2: 250 + demandShift }}
                   transition={{ type: "spring", stiffness: 100 }}
                 />
                 <motion.text 
                   x={260 + demandShift} y={260} 
-                  className="text-sm fill-blue-600 font-bold"
+                  className={`text-sm font-bold ${cbDemandShift !== 0 ? 'fill-blue-400' : 'fill-blue-600'}`}
                   animate={{ x: 260 + demandShift }}
                 >{demandShift !== 0 ? 'D1' : 'D'}</motion.text>
 
@@ -145,6 +152,26 @@ export default function FixedPeg() {
                       initial={{ opacity: 0 }}
                       animate={{ opacity: 1, x: 260 + supplyShift + cbSupplyShift }}
                     >S2 (CB)</motion.text>
+                  </>
+                )}
+
+                {/* CB Intervention Demand (Only visible if intervening) */}
+                {cbDemandShift !== 0 && (
+                  <>
+                    <motion.line 
+                      x1={50 + demandShift + cbDemandShift} y1={50} 
+                      x2={250 + demandShift + cbDemandShift} y2={250} 
+                      stroke="#10b981" strokeWidth="3" strokeDasharray="6 4"
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1, x1: 50 + demandShift + cbDemandShift, x2: 250 + demandShift + cbDemandShift }}
+                      transition={{ type: "spring", stiffness: 100 }}
+                    />
+                    <motion.text 
+                      x={260 + demandShift + cbDemandShift} y={260} 
+                      className="text-sm fill-emerald-600 font-bold"
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1, x: 260 + demandShift + cbDemandShift }}
+                    >D2 (CB)</motion.text>
                   </>
                 )}
 
@@ -191,7 +218,7 @@ export default function FixedPeg() {
                 RESERVES DEPLETED! The peg breaks! (Currency Crisis)
               </div>
             )}
-            {!pegBroken && cbSupplyShift !== 0 && (
+            {!pegBroken && (cbSupplyShift !== 0 || cbDemandShift !== 0) && (
               <div className="mt-4 p-3 bg-emerald-50 text-emerald-800 rounded-xl text-sm font-medium flex items-center gap-2 border border-emerald-200">
                 <Info className="w-5 h-5" />
                 {cbSupplyShift > 0 
@@ -239,7 +266,7 @@ export default function FixedPeg() {
               <div>
                 <h4 className="font-semibold text-rose-800">Cons</h4>
                 <ul className="list-disc list-inside text-sm text-rose-700 space-y-1 mt-1">
-                  <li>Total loss of independent monetary policy (must follow US Fed).</li>
+                  <li>Total loss of independent control of domestic interest rates (must follow US Fed, assuming free capital flows).</li>
                   <li>Requires massive foreign reserves to defend the peg.</li>
                   <li>Vulnerable to speculative attacks if reserves run low.</li>
                 </ul>
